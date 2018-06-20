@@ -20,14 +20,88 @@ module.exports = (app)=>{
     else{
       let connection = app.models.connectionFactory();
       let bdclass = new app.models.bdclass(connection);
+
       corpo.status = "CRIADO";
       corpo.data = new Date;
+
       bdclass.salvar(corpo,(err,result)=>{
-        res.status(201).json(corpo);
+        res.location('/pagamentos/pagamento/' +
+        corpo.id);
+        
+        var response = {
+          dados_do_pagamanto: corpo,
+          links: [
+            {
+              href:"http://localhost:3000/pagamentos/pagamento/"
+              + corpo.id,
+              rel:"confirmar",
+              method:"PUT"
+            },
+            {
+              href:"http://localhost:3000/pagamentos/pagamento/"
+              + corpo.id,
+              rel:"cancelar",
+              method:"DELETE"
+            }
+          ]
+        }
+        res.status(201).json(response);
+
       });
       connection.end();
 
     }
 
+  });
+
+  app.delete('/pagamentos/pagamento/:id', (req,res)=>{
+
+      let pagamento = {};
+      let id = req.params.id;
+
+      pagamento.id = id;
+      pagamento.status = "CANCELADO";
+
+      let connection = app.models.connectionFactory();
+      let bdclass = new app.models.bdclass(connection);
+
+      bdclass.atualizar(pagamento,(erros)=>{
+
+       if(erros){
+          res.status(400).send(erros);
+          return;
+        }
+        console.log('Pagamento atualizado');
+        res.status(204).send(pagamento);
+
+      });
+      connection.end();
+
+      
+  });
+  app.put('/pagamentos/pagamento/:id', (req,res)=>{
+
+    let pagamento = {};
+    let id = req.params.id;
+
+    pagamento.id = id;
+    pagamento.status = "CONFIRMADO";
+
+    let connection = app.models.connectionFactory();
+    let bdclass = new app.models.bdclass(connection);
+
+    bdclass.atualizar(pagamento,(erros)=>{
+
+    if(erros){
+        res.status(400).send(erros);
+        return;
+      }
+      console.log('Pagamento atualizado');
+      res.send(pagamento);
+
+    });
+    connection.end();
+
+    
   });
 }
