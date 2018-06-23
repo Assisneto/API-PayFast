@@ -4,6 +4,43 @@ module.exports = (app)=>{
     res.send('OK.');
   });
   
+  app.get('/pagamentos/pagamento/:id',(req,res)=>{
+      let id = req.params.id;
+
+      console.log(`Consultando pagamento:${id}`);
+
+      let memcachedClient = app.servico.memcachedClient();
+
+      memcachedClient.get(`pagamento-${id}`, (erro, retorno)=>{
+      if (erro || !retorno){
+        console.log('MISS - chave nao encontrada');
+
+        let connection = app.models.connectionFactory();
+        let bdclass = new app.models.bdclass(connection);
+  
+        bdclass.busca_id(id, (err,result)=>{
+            if(err){
+              console.log(`Erro:${err}`);
+              res.status(500).send(err);
+              return;
+            }
+            console.log(`Pagamento encontrado:${JSON.stringify(result)}`)
+            res.json(result);
+            return;
+        });
+      
+        //HIT no cache
+      } else {
+        console.log('HIT - valor: ' + JSON.stringify(retorno));
+        res.json(retorno);
+        return;
+      }
+    });
+
+
+
+
+  });
   app.post('/pagamentos/pagamento',(req,res)=>{
     let corpo = req.body;
 
@@ -25,9 +62,26 @@ module.exports = (app)=>{
       corpo.data = new Date;
 
       bdclass.salvar(corpo,(err,result)=>{
+        if(err){
+          console.log(err);
+          return;
+          
+        }else{
+        corpo.id = result.insertId;
         res.location('/pagamentos/pagamento/' +
         corpo.id);
-        
+
+        let cache = app.servico.memcachedClient();
+        cache.set('pagamento-' + corpo.id, corpo, 100, (erros)=> {
+          if(erros){
+            console.log(erros);
+            return;
+          }else{
+           console.log(`nova chave: pagamento-${corpo.id}`);
+          }
+         });
+
+ 
         var response = {
           dados_do_pagamanto: corpo,
           links: [
@@ -46,10 +100,10 @@ module.exports = (app)=>{
           ]
         }
         res.status(201).json(response);
-
+      }
       });
       connection.end();
-
+      return;
     }
 
   });

@@ -15,7 +15,7 @@ class bdClass{
         return this.connection.query('UPDATE pagamentos SET status = ? where id = ?',[pagamentos.status,pagamentos.id],callback);
     }*/
     busca_id(id,callback){
-        return this.connection.query("select * from pagamentos where id = ?",[id],callback);
+        return this.connection.query(`select * from pagamentos where id = ${[id]}`,callback);
     }
     atualizar(pagamentos,callback){
         return this.connection.query('UPDATE pagamentos SET status = ? where id = ?', [pagamentos.status,pagamentos.id],callback);
