@@ -13,6 +13,7 @@ module.exports = () =>{
   consign({cwd:'app'})
    .include('controllers')
    .then('models')
+   .then('servico')
    .into(app);
 
   return app;
